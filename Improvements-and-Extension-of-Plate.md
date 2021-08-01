@@ -1,22 +1,22 @@
-## About : Extensions and improvments of Plate algorithm
+## About : Extensions and improvements of Plate algorithm
 
 The development of FDF, Toyota requirements for G2 continuity of H-prism, as well as the limitations of STYLER Powerfill and Powermorph actions have, for seemingly quite different demands, lead to improve Plate with the possibility to impose linear constraint that are different from the value of it's function derivative.
 
-This "new version" of Plate make accessible spectaculary improvments in PowerFill (this has been tested, only user interface is left to be developped) and presumably same kind of improvments in PowerMorph
+This "new version" of Plate make accessible spectaculary improvements in PowerFill (this has been tested, only user interface is left to be developped) and presumably same kind of improvements in PowerMorph
 Furthermore it will have to be integrated in the Package GeomPlate, to allow enriched public syntaxes as much for "Shell Design" projet than for CAS.CADE clients.
 
-You will find attached the internal specification document corresponding to these improvments and extensions.
+You will find attached the internal specification document corresponding to these improvements and extensions.
 
 Moreover, integration of this development in CAS.CADE is the subject of the study n° S 3816 opened by the Software Development Direction
 
 
-# Improvments and Extensions of Plate 
+# improvements and Extensions of Plate 
 The development of FDF, Toyota requirements for G2 continuity of H-prism, as well as the limitations of STYLER Powerfill and Powermorph actions have, for seemingly quite different demands, lead to improve Plate with the possibility to impose linear constraint that are different from the value of it's function derivative.
 
 This document describe extensions brought in this context.
-The design of these improvments is as much coming from recent demands than maturation of ideas resulting in more than 2 years of utilisation of Plate in various contexts.
+The design of these improvements is as much coming from recent demands than maturation of ideas resulting in more than 2 years of utilisation of Plate in various contexts.
 
-Moreover, strategies of iterative computation, which constitutes a research domain and certain improvments in the case of PlateFE (Plate is based on finite element method, which will be the topic of another document) can, even if it is less obvious (and less mathematically justifiable) be tested with Plate. The improvments in this domain should allow to share concepts and code between the two tools Plate and PlateFE.
+Moreover, strategies of iterative computation, which constitutes a research domain and certain improvements in the case of PlateFE (Plate is based on finite element method, which will be the topic of another document) can, even if it is less obvious (and less mathematically justifiable) be tested with Plate. The improvements in this domain should allow to share concepts and code between the two tools Plate and PlateFE.
 
 Finally, the public level of CAS.CADE API about surface creation by filling and interpolation is the package GeomPlate, developped by the modelisation team.
 This document propose an alternative positioning of differents classes that works together in the Plate and GeomPlate package.
