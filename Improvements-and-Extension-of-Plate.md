@@ -184,7 +184,7 @@ Then :
 
 and :
 
-<p align=center> ||U<sub>n</sub>|| = < &rho;<sup>n</sup> ||U<sub>0</sub>|| 
+<p align=center> ||U<sub>n</sub>|| < &rho;<sup>n</sup> ||U<sub>0</sub>|| 
 
 the computation of the norm of ||U<sub>n</sub>|| cost O(n) operations, while the factorisaton cost O(n<sup>3</sup>) and each iteration cost O(n<sup>2</sup>). It is then interesting to measure the norm U<sub>n</sub> at each iteration. Thus we can iterate until this norm becomes lower than a desired value and find the problem if the norm goes up as iterations goes on.
 
