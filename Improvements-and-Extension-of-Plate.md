@@ -137,7 +137,8 @@ Concrete classes deriving from *GPPConstraint* (*G0Constraint*, *G0G1Constraint*
 
 Overview of class that are collaborating in packages *Plate* and *GeomPlate*
 
- ![img](/extracted_imgs/p8.PNG) 
+ <!-- ![img](/extracted_imgs/p8.PNG)  -->
+ ![img](/extracted_imgs/Plate_drawing_01.svg) 
 
 Frames with bold line correspond to the new classes (apart *Plate* that has deeply evolved). Dotted arrows shows the potential dependency, i.e ones that may be effective while client classes of *Plate* package will use the new offered functions. Only the dependency of *NLPlate* and *PowerMorph* towards *Plate* have been represented to not flood the scheme. Current dependency of *buildPlateSurface* or *MakeApprox* classes of *GeomPlate* package doesn't appear on the scheme because they would need to be replaced in the long run by a dependency towards *NLPlate*.
 
