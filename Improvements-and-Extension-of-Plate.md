@@ -138,7 +138,9 @@ Concrete classes deriving from *GPPConstraint* (*G0Constraint*, *G0G1Constraint*
 Overview of class that are collaborating in packages *Plate* and *GeomPlate*
 
  <!-- ![img](/extracted_imgs/p8.PNG)  -->
- ![img](/extracted_imgs/Plate_drawing_01.svg) 
+ <p align="center">
+    <img src="./extracted_imgs/Plate_drawing_01.svg"/>
+</p>
 
 Frames with bold line correspond to the new classes (apart *Plate* that has deeply evolved). Dotted arrows shows the potential dependency, i.e ones that may be effective while client classes of *Plate* package will use the new offered functions. Only the dependency of *NLPlate* and *PowerMorph* towards *Plate* have been represented to not flood the scheme. Current dependency of *buildPlateSurface* or *MakeApprox* classes of *GeomPlate* package doesn't appear on the scheme because they would need to be replaced in the long run by a dependency towards *NLPlate*.
 
@@ -242,7 +244,7 @@ Such a constraint can be written as :
 the only difference with the expression of *LinearXYZConstraint* is that the &gamma; coefficients are now vectors and the symbol "." is now a dot product.
 
 More precisely, a *LinearScalarConstraint* allows in general to code **n** such constraints because  such a class correspond to :
-- a matrix of **n x m** vectors (*gp_XYZ*) {&gamma;} **(this represent the vector &gamma;)** {&gamma;}<sub>iq</sub>, i = 1, n, q=1, ù with n less or equals m 
+- a matrix of **n x m** vectors (*gp_XYZ*) {&gamma;} **(this represent the vector &gamma;)** {&gamma;}<sub>iq</sub>, i = 1, n, q=1, m with n less or equals m 
 - a table **(array ??)** of m *PinPointConstraint*.
 
 Grouping together **n** constraints being linear combinations of the same **m** *PinPointConstraint* can again constitute an important. **(??? The original text doesn't make any sense here)**
