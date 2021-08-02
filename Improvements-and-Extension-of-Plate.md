@@ -139,8 +139,115 @@ Overview of class that are collaborating in packages *Plate* and *GeomPlate*
 
  ![img](/extracted_imgs/p8.PNG) 
 
+Frames with bold line correspond to the new classes (apart *Plate* that has deeply evolved). Dotted arrows shows the potential dependency, i.e ones that may be effective while client classes of *Plate* package will use the new offered functions. Only the dependency of *NLPlate* and *PowerMorph* towards *Plate* have been represented to not flood the scheme. Current dependency of *buildPlateSurface* or *MakeApprox* classes of *GeomPlate* package doesn't appear on the scheme because they would need to be replaced in the long run by a dependency towards *NLPlate*.
 
 
+# Details on new functionalities
+## *Plate* class and new base constraint
+
+*SolveIT* method of *Plate* proposes a new parameter, *IterationNumber*, default to 1, that define a number of iterations during the solving of the linear system.
+Considering the linear system :
+
+<p align=center> A.X = B
+
+The two important services of *Gauss from math* class are :
+- the constructor, that factorize the first member matrix.
+- the *Solve* method that gives a solution for a particular second member.
+
+If we neglect the rounding errors, applying *Solve* to a any vector B, comes down to calculating :
+
+<p align=center> X = A<sup>-1</sup>.B
+
+If rounding errors aren't neglectable (we know that in some cases, in particular when stress density is large, the matrix isn't well conditioned) the *Solve* method must be considered as a multiplication of a matrix A<sup>'</sup> close to A<sup>-1</sup>.
+
+If we suppose the rounding errors small, meaning :
+
+<p align=center> || 1 - A A<sup>'</sup> || < &rho; < 1
+
+It's then impossible to approach A<sup>-1</sup> B with a high enough precision (rounding errors accumulates between two sucessive iteration)
+
+We compute, by assimilating the *Solve* call with a multiplication by A<sup>'</sup> :
+
+<p align=center> X<sub>0</sub> = A<sup>'</sup> B
+<p align=center> X<sub>n+1</sub> = X<sub>n</sub> + A<sup>'</sup> (B - A X<sub>n</sub>)
+
+Thus we note:
+
+<p align=center> U<sub>n</sub> =  A X<sub>n</sub> - B
+
+Then :
+
+<p align=center> U<sub>n</sub> =  (1-A A<sup>'</sup>)<sup>n</sup> U<sub>0</sub>
+
+and :
+
+<p align=center> ||U<sub>n</sub>|| = < &rho;<sup>n</sup> ||U<sub>0</sub>|| 
+
+the computation of the norm of ||U<sub>n</sub>|| cost O(n) operations, while the factorisaton cost O(n<sup>3</sup>) and each iteration cost O(n<sup>2</sup>). It is then interesting to measure the norm U<sub>n</sub> at each iteration. Thus we can iterate until this norm becomes lower than a desired value and find the problem if the norm goes up as iterations goes on.
+
+## Linear constraint : principle
+
+*Plate* algorithm as it is written in ALR96346.DOC, suppose that all linear constraint are of the following form :
+
+<p align="center">
+  <img src="./extracted_imgs/p11-f1.PNG" />
+</p>
+
+Here, C has value in R<sup>3</sup> imposed.
+This type of constraint is materialized by the class *PinPointConstraint*.
+
+(C1) express the same constraints on x, y, z component (only imposed values, i.e C coordinates are different). Moreover, the energy criterion is a sum of three identical *"fonctionnelles"* **(functional ??)** on x, y and z component of *f* function.
+
+The searching of x,y and z component constitute three solutions, corresponding of different second members of different linear system sharing the same matrix.
+
+This solution stays similar if we add new type of constraints that are linear combinations of constraint of type (C1). These constraints are express in the form of :
+
+<p align="center">
+  <img src="./extracted_imgs/p11-f2.PNG" />
+</p>
+
+This shape is materialized by the class *LinearXYZConstraint*. The XYZ string tells us this kind of constraint is 3D. (Acting upon each of the three coordinates).
+
+More precisely, a *LinearXYZConstraint* allows in general to code n such constraints so that such a class corresponds to the data of :
+- a matrix **n** * **m** real &gamma;<sub>iq</sub>, i=1, **n**, q=1,**m** with **n** smaller or equal to **m**.
+- a table **(an array ?)** of **m** *PinPointConstraint*
+
+Grouping together **n** constraints being linear combinations of the same **m** *PinPointConstraint* constitutes an important optimization in certain cases. Indeed, we will see later that **n** can be quite big (i.e >10). In such a case, if the **n** constraints weren't grouped, evaluations of the "elementary solutions" function and it's derivatives: &epsilon;<sub>m</sub><sup>i<sub>k</sub>, j<sub>k</sub></sup> (u - u<sub>k</sub>, v - v<sub>k</sub>), would be **n** times more numerous (because the algorithm would ignore that it evaluates **n** time the same functions.) during the constitution of the linear system as well as during the positionning on the theoretical function.
+
+Let's get back to the explanation given for the *Plate* algorithm in ALR96346.DOC. Application of Lagrande principle leads, for each constraint of type *PinPointConstraint* to a contribution of the form :
+
+<p align="center">
+  <img src="./extracted_imgs/p12-f1.PNG" />
+</p>
+
+to the solution where &lambda;<sub>k</sub> is the unknown Lagrange multiplier and (i<sub>k</sub>, j<sub>k</sub>) means the derivation of ordre i<sub>k</sub> on u and j<sub>k</sub> on v.
+A similar computation leads, for the k<sup>th</sup> constraint of type *LinearXYZConstraint*, to a contribution of the form :
+
+<p align="center">
+  <img src="./extracted_imgs/p12-f2.PNG" />
+</p>
+
+The constraints satisfaction as well as equilibrium of generalized torques (**momentum ??**) leads again to a symmetrical linear system. (but not always positive).
+
+A new type of constraints called *LinearScalarConstraint* because it allows to define any scalar constraint that is a linear combination of *PinPointConstraint* breaks the three axis decoupling property. Thus we only need one constraint of this type so the solving of this linear system, solving simultaneously x, y and z components,  is largely more expensive (at least until we haven't created a method of solving taking in account the partially sparse structure of the matrix).
+
+Such a constraint can be written as :
+
+<p align="center">
+  <img src="./extracted_imgs/p12-f3.PNG" />
+</p>
 
 
+the only difference with the expression of *LinearXYZConstraint* is that the &gamma; coefficients are now vectors and the symbol "." is now a dot product.
+
+More precisely, a *LinearScalarConstraint* allows in general to code **n** such constraints because  such a class correspond to :
+- a matrix of **n x m** vectors (*gp_XYZ*) {&gamma;} **(this represent the vector &gamma;)** {&gamma;}<sub>iq</sub>, i = 1, n, q=1, ù with n less or equals m 
+- a table **(array ??)** of m *PinPointConstraint*.
+
+Grouping together **n** constraints being linear combinations of the same **m** *PinPointConstraint* can again constitute an important. **(??? The original text doesn't make any sense here)**
+
+The method *SolveTI* of *Plate* now take in account these differents types of constraints by calling private methods :
+- *SolveTI1* if there is only constraints of type *PinPointConstraint* (old algorithm)
+- *SolveTI2* if there is only constraints of type *LinearXYZConstraint* but no constraints of type *LinearScalarConstraint*
+- *SolveTI3* as soon as there is at least one constraint of type *LinearScalarConstraint*
 
