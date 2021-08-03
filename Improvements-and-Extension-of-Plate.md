@@ -254,3 +254,128 @@ The method *SolveTI* of *Plate* now take in account these differents types of co
 - *SolveTI2* if there is only constraints of type *LinearXYZConstraint* but no constraints of type *LinearScalarConstraint*
 - *SolveTI3* as soon as there is at least one constraint of type *LinearScalarConstraint*
 
+# "Base" Constraints : syntax
+
+Constructors of *Plate_LinearXYZConstraint* have the following syntaxes : (described by their CDL declarations) The following constructor is enough when the number of constraints that are linear combination of the same *PinPointConstraint* is equal 1 :
+```
+Create(PPC: Array1OfPinpointConstraint;
+      coeff: Array1OfReal)
+    returns LinearXYZConstraint
+        raises DimensionMismatch from Standard;
+- The length of PPC have to be the Row length of coeff
+```
+The following constructor correspond to the general case.
+The length of PPC **(PinPointConstraint)** (i.e the length of the ligne where the number of columns of **coeff**) correspond to the number (noted **m** above) of constraints entering a linear combination.
+The length of the column (where the number of lines) of **coeff** corresponds to the number (noted **n** above) of simultaneous linear constraints, that are linear combinations of the same *PinPointConstraint*
+```
+Create(PPC: Array1OfPinpointConstraint;
+      coeff: Array2OfReal)
+    returns LinearXYZConstraint
+        raises DimensionMismatch from Standard;
+- The length of PPC have to be the Row length of coeff
+```
+
+That last constructor allow to create a *LinearXYZConstraint* with a given size (ColLen correspond to **n** and RowLen to **m**). We can then assign the values of PPC and coeff after the creation of the constraint, which avoids a copy of the arrays and may be more practical.
+
+```
+Create(ColLen, RowLen : Integer)
+  returns LinearXYZConstraint;
+```
+
+The extract of CDL of classe *Plate_LinearScalarConstraint* below illustrate the class creation syntaxes.
+These syntaxes have the same meaning that the one of the constructors of *Plate_LinearXYZConstraint* apart that coeff is now an array of vectors (more precisely of *gp_XYZ*).
+Only one syntax is new compared to the constructors of LinearXYZConstraint : the first one correspond to the case where n=m=1
+
+```
+Create(PPC1 : PinPointConstraint;
+      coeff : XYZ )
+  returns LinearScalarConstraint;
+```
+```
+Create(PPC : Array1OfPinPointConstraint;
+      coeff : Array1OfXYZ )
+  returns LinearScalarConstraint;
+    raises DimensionMismatch from Standard;
+-- PPC and coeff have to be the same length
+```
+```
+Create(PPC : Array1OfPinPointConstraint;
+      coeff : Array2OfXYZ )
+  returns LinearScalarConstraint;
+    raises DimensionMismatch from Standard;
+-- the length of PPC have to be the Row length of coeff
+```
+
+# New Plate services
+
+Extracts of CDL from *Plate* class below shows the syntax of the new public methods of *Plate*.
+
+We added assigment operator, (=) allowing to assign a variable Plate in another by **duplicating all the datas** (nothing's shared).
+This operator was mandatory to Plate users that manipulate several instances of *Plate* (for example Fdf)
+```
+Copy(me: in out; Ref: Plate)
+    ---C++: alias operator=
+    ---C++: return &
+  returns Plate;
+```
+
+For each new type of constraint, we propose the corresponding *Load* method.
+```
+Load(me: In out; LXYZConst: LinearXYZConstraint);
+Load(me: In out; LScalarConst: LinearScalarConstraint);
+Load(me: In out; FGtoCConst: FreeGtoCConstraint);
+Load(me: In out; GTConst: GlobalTranslationConstraint);
+Load(me: In out; SCC: SampleCurveConstraint);
+Load(me: In out; PinC: PlaneConstraint);
+Load(me: In out; LinC: LineConstraint);
+```
+
+The two following methods allows to exploit the polynomial part of the solution function. This polynomial part can be used for example to refine the initial surface.
+CoefPol gives the coefficients of the polynomial part in the canonical base.
+```
+CoefPol(me: Coefs: out HArray2OfXYZ from TColgp);
+```
+
+A call to the following function with the value True changes the behaviour of Evaluate and EvaluateDerivative methods in a way that they only gives the polynomial contribution.
+```
+SetPolynomialPartOnly(me: in out;
+        PPOnly: Boolean = Standard_True);
+```
+The following method gives the order of continuity (gives k for a C<sub>k</sub> continuity) of the Plate function.
+```
+Continuity(me) returns Interger;
+```
+If the continuity given by the Continuity method is greater or equal than 4, the EvaluateDerivative method now operate for all the derivative orders (iu, iv) for which iu an div are less than or equal 2, this authorizes (always in the case where the continuity is greater than 4) to use our polynomial approximation operator (GeomPlate_ApproxSurface for example) to ask a C2 result.
+
+## Composed Constraints
+
+## PlaneConstraint and LineConstraint
+
+These constraints allows to force the belonging of a point (or a derivative) to a plan (for PlaneConstraint) or a line (for LineConstraint).
+
+PlaneConstraint creates a LinearScalarConstraint constituted of a sole PinPointConstraint imposing the passage of the function or one of it's derivative at a given order, at a point somewhere in the plan and one vectorial coefficient : the plan normal.
+
+It is a unique linear combination of only one PinPointConstraint, i.e n=m=1 (taking the notation below)
+The creation syntax is :
+```
+Create(UV : XY from gp; plane : gp_Pln from gp; iu: Integer=0; iv: Integer = 0)
+  returns PlaneConstraint;
+```
+
+LineConstraint creates a LinearScalarCOnstraint constituted of a sole PinPointConstraint imposing the passage of the function or one of it's derivative at a given order, at a point somewhere in the plan and two vectorial coefficients that must form a base of the vectorial plan orthogonal to the line.
+This base is computed in the constructor PlaneConstraint, from the direction of the given "gp_Lin".
+They are two linear combinations of one PinPointConstraint, i.e taking the notation up above n=2 and m=1.
+
+The creation syntax is :
+```
+Create(UV : XY from gp; line: gp_Lin from gp; gp; iu: Integer=0; iv: Integer = 0)
+  returns LineConstraint;
+```
+
+## SampledCurveConstraint Constraint
+
+Currently "curvilinear" constraints are replaced, by the Plate callers, by n punctual constraints gotten by sampling of the curvilinear constraint.
+
+When the imposed values along the curve are regular<sup>4</sup> enough it's possible to highly improve the ratio [precision/number of unknown of Plate] by using constraints of the type SampledCurveConstraint (we recall that the excecution time of SolveTI is proportionnal of the cube of this unknowns number.)
+
+<sup>4</sup> This term isn't really precise. While there is theoritically a link between regularity (derivability at order k or belonging to a Sobolev space...) of imposed values, of the 2D curve and the "reaction force" or "Lagrande multiplier" function along the curviliear constraint, the meaning of the word regularity must, in a particular context where we stop at a given sampling finesse, being interpreted like the "slow variation of the function and it's derivative".
