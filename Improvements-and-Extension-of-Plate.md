@@ -312,7 +312,7 @@ Extracts of CDL from *Plate* class below shows the syntax of the new public meth
 
 We added assigment operator, (=) allowing to assign a variable Plate in another by **duplicating all the datas** (nothing's shared).
 This operator was mandatory to Plate users that manipulate several instances of *Plate* (for example Fdf)
-```
+```cpp
 Copy(me: in out; Ref: Plate)
     ---C++: alias operator=
     ---C++: return &
@@ -320,7 +320,7 @@ Copy(me: in out; Ref: Plate)
 ```
 
 For each new type of constraint, we propose the corresponding *Load* method.
-```
+```cpp
 Load(me: In out; LXYZConst: LinearXYZConstraint);
 Load(me: In out; LScalarConst: LinearScalarConstraint);
 Load(me: In out; FGtoCConst: FreeGtoCConstraint);
@@ -332,17 +332,17 @@ Load(me: In out; LinC: LineConstraint);
 
 The two following methods allows to exploit the polynomial part of the solution function. This polynomial part can be used for example to refine the initial surface.
 CoefPol gives the coefficients of the polynomial part in the canonical base.
-```
+```cpp
 CoefPol(me: Coefs: out HArray2OfXYZ from TColgp);
 ```
 
 A call to the following function with the value True changes the behaviour of Evaluate and EvaluateDerivative methods in a way that they only gives the polynomial contribution.
-```
+```cpp
 SetPolynomialPartOnly(me: in out;
         PPOnly: Boolean = Standard_True);
 ```
 The following method gives the order of continuity (gives k for a C<sub>k</sub> continuity) of the Plate function.
-```
+```cpp
 Continuity(me) returns Interger;
 ```
 If the continuity given by the Continuity method is greater or equal than 4, the EvaluateDerivative method now operate for all the derivative orders (iu, iv) for which iu an div are less than or equal 2, this authorizes (always in the case where the continuity is greater than 4) to use our polynomial approximation operator (GeomPlate_ApproxSurface for example) to ask a C2 result.
