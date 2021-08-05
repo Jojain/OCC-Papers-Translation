@@ -257,7 +257,7 @@ The method *SolveTI* of *Plate* now take in account these differents types of co
 # "Base" Constraints : syntax
 
 Constructors of *Plate_LinearXYZConstraint* have the following syntaxes : (described by their CDL declarations) The following constructor is enough when the number of constraints that are linear combination of the same *PinPointConstraint* is equal 1 :
-```
+```cpp
 Create(PPC: Array1OfPinpointConstraint;
       coeff: Array1OfReal)
     returns LinearXYZConstraint
@@ -267,7 +267,7 @@ Create(PPC: Array1OfPinpointConstraint;
 The following constructor correspond to the general case.
 The length of PPC **(PinPointConstraint)** (i.e the length of the ligne where the number of columns of **coeff**) correspond to the number (noted **m** above) of constraints entering a linear combination.
 The length of the column (where the number of lines) of **coeff** corresponds to the number (noted **n** above) of simultaneous linear constraints, that are linear combinations of the same *PinPointConstraint*
-```
+```cpp
 Create(PPC: Array1OfPinpointConstraint;
       coeff: Array2OfReal)
     returns LinearXYZConstraint
@@ -277,7 +277,7 @@ Create(PPC: Array1OfPinpointConstraint;
 
 That last constructor allow to create a *LinearXYZConstraint* with a given size (ColLen correspond to **n** and RowLen to **m**). We can then assign the values of PPC and coeff after the creation of the constraint, which avoids a copy of the arrays and may be more practical.
 
-```
+```cpp
 Create(ColLen, RowLen : Integer)
   returns LinearXYZConstraint;
 ```
@@ -286,19 +286,19 @@ The extract of CDL of classe *Plate_LinearScalarConstraint* below illustrate the
 These syntaxes have the same meaning that the one of the constructors of *Plate_LinearXYZConstraint* apart that coeff is now an array of vectors (more precisely of *gp_XYZ*).
 Only one syntax is new compared to the constructors of LinearXYZConstraint : the first one correspond to the case where n=m=1
 
-```
+```cpp
 Create(PPC1 : PinPointConstraint;
       coeff : XYZ )
   returns LinearScalarConstraint;
 ```
-```
+```cpp
 Create(PPC : Array1OfPinPointConstraint;
       coeff : Array1OfXYZ )
   returns LinearScalarConstraint;
     raises DimensionMismatch from Standard;
 -- PPC and coeff have to be the same length
 ```
-```
+```cpp
 Create(PPC : Array1OfPinPointConstraint;
       coeff : Array2OfXYZ )
   returns LinearScalarConstraint;
@@ -357,7 +357,7 @@ PlaneConstraint creates a LinearScalarConstraint constituted of a sole PinPointC
 
 It is a unique linear combination of only one PinPointConstraint, i.e n=m=1 (taking the notation below)
 The creation syntax is :
-```
+```cpp
 Create(UV : XY from gp; plane : gp_Pln from gp; iu: Integer=0; iv: Integer = 0)
   returns PlaneConstraint;
 ```
@@ -367,7 +367,7 @@ This base is computed in the constructor PlaneConstraint, from the direction of 
 They are two linear combinations of one PinPointConstraint, i.e taking the notation up above n=2 and m=1.
 
 The creation syntax is :
-```
+```cpp
 Create(UV : XY from gp; line: gp_Lin from gp; gp; iu: Integer=0; iv: Integer = 0)
   returns LineConstraint;
 ```
@@ -386,7 +386,7 @@ What is needed to build a *SampledCurveConstraint* are :
 An *n* value that is way lower than *m* (at least n<m /3) is advised in order to be able to consider, in first approximation, that type of loading as a linear loading.
 
 Which correspond to the syntax :
-```
+```cpp
 Create(SOPPC: SequenceOfPinPointConstraint; n:integer) returns SampledCurveConstraint;
 ```
 Such a SampledCurveConstraint only generates n unknowns while imposing m ponctual pressures. However, this ponctual pressure density follow a "polyline" or degree 1 Bspline law, where the m poles are the unknowns.
@@ -425,7 +425,7 @@ Given the fact that the first and last PinPointConstraint has a lower weight, it
 This constraint indicates that, for a set of m parameters (u<sub>i</sub>,v<sub>i</sub>), the Plate function has to have the same value while letting free this value (during the minimization of energy).
 For example, if we deform a surface and a "feature" relies on this surface, we can wish that the curve upon which the "feature" holds itself doesn't deform and doesn't undergo rotation.
 The creation syntax is :
-```
+```cpp
 Create(SOfXY: SequenceOfXY) returns GlobalTranslationConstraint;
 -- SofXY is a set of UV parameters for which the Plate function will give the same value
 -- The Sequence length have to be at least 2.
@@ -493,14 +493,14 @@ That's why, if there is a incremental loading (i.e that the parameter *Increment
 
 To understand below building syntaxes, we recall that D1, D2 and D3 classes of Plate package defines respectively a couple, a triplet and a quadruplet of 3D vectors defining respectively the first, second and third derivatives of a 3D function of 2 variables.
 
-```
+```cpp
 Create(point2d: XY; D1S, D1T:D1 from Plate; IncrementalLoad: Real=1.0; orientation : Integer = 0) 
 returns FreeGtoCConstraint;
 -- G1 constraint:
 -- D1S : first derivative of S, the surface we want to correct
 -- D1T : first derivative of the reference surface
 ```
-```
+```cpp
 Create(point2d: XY from gp; D1S, D1T:D1 from Plate;
   D2S, D2T: D2 from Plate; IncrementalLoad: Real=1.0; orientation : Integer =0) 
 returns FreeGtoCConstraint;
@@ -510,7 +510,7 @@ returns FreeGtoCConstraint;
 -- D2S : second derivative of S, the surface we want to correct
 -- D2T : second derivative of the reference surface
 ```
-```
+```cpp
 Create(point2d: XY from gp; D1S, D1T:D1 from Plate; 
   D2S, D2T: D2 from Plate;
   D3S, D3T: D3 from Plate;
