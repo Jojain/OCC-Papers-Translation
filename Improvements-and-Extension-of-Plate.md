@@ -10,7 +10,7 @@ You will find attached the internal specification document corresponding to thes
 Moreover, integration of this development in CAS.CADE is the subject of the study n° S 3816 opened by the Software Development Direction
 
 
-# improvements and Extensions of Plate 
+# Improvements and Extensions of Plate 
 The development of FDF, Toyota requirements for G2 continuity of H-prism, as well as the limitations of STYLER Powerfill and Powermorph actions have, for seemingly quite different demands, lead to improve Plate with the possibility to impose linear constraint that are different from the value of it's function derivative.
 
 This document describe extensions brought in this context.
@@ -379,3 +379,236 @@ Currently "curvilinear" constraints are replaced, by the Plate callers, by n pun
 When the imposed values along the curve are regular<sup>4</sup> enough it's possible to highly improve the ratio [precision/number of unknown of Plate] by using constraints of the type SampledCurveConstraint (we recall that the excecution time of SolveTI is proportionnal of the cube of this unknowns number.)
 
 <sup>4</sup> This term isn't really precise. While there is theoritically a link between regularity (derivability at order k or belonging to a Sobolev space...) of imposed values, of the 2D curve and the "reaction force" or "Lagrande multiplier" function along the curviliear constraint, the meaning of the word regularity must, in a particular context where we stop at a given sampling finesse, being interpreted like the "slow variation of the function and it's derivative".
+
+What is needed to build a *SampledCurveConstraint* are :
+- a ordered list of *m* *PinPointConstraint*
+- an integer, *n* with *n*<*m*
+An *n* value that is way lower than *m* (at least n<m /3) is advised in order to be able to consider, in first approximation, that type of loading as a linear loading.
+
+Which correspond to the syntax :
+```
+Create(SOPPC: SequenceOfPinPointConstraint; n:integer) returns SampledCurveConstraint;
+```
+Such a SampledCurveConstraint only generates n unknowns while imposing m ponctual pressures. However, this ponctual pressure density follow a "polyline" or degree 1 Bspline law, where the m poles are the unknowns.
+<p align="center">
+  <img src="./extracted_imgs/p17_graph.PNG" />
+</p>
+<p align="center">
+  <i>Visualisation of the ponctual pressures intensity for a SampledCurveConstraint, with n=3 and m = 39
+  </i>
+</p>
+
+The list order is important : it defines implicitly a setting of the Bspline function of degree 1 and must, for a optimal behaviour, follow the points order along the sampling curve.
+The density of the points along the curvce can be variable and this density as an effect. There is roughly a pole every (m+1)/(n+1) sampling point and the density of the poles will follow the density of the sampled points.
+
+Be B the "hat" function or the base function Bspline of degree 1 :
+
+<p align=center> B(x) = max(0,1 - |x|)</p>
+we verify that :
+<br>
+</br>
+<p align="center">
+  <img src="./extracted_imgs/p18-f1.PNG" />
+</p>
+
+A SampledCurveCOnstraint simply create a LinearXYZConstraint composed of m PinPointConstraint from one side and a matrix *Coef* of n * m reals :
+<p align="center">
+  <img src="./extracted_imgs/p18-f2.PNG" />
+</p>
+
+Every PinPointConstraint with an index between [m+1/n+1, m-(m+1/n+1)] has a total weight (shared in general by 2 of the n constraints) equal to 1.
+
+Given the fact that the first and last PinPointConstraint has a lower weight, it is recommanded to add, independently of the SampledCurveConstraint, PinPointConstraint at the extrema of these "curvilinear constraints", even if another follows and/or precede, in order to "hold" the corners.
+
+## GlobalTranslationConstraint Constraint
+
+This constraint indicates that, for a set of m parameters (u<sub>i</sub>,v<sub>i</sub>), the Plate function has to have the same value while letting free this value (during the minimization of energy).
+For example, if we deform a surface and a "feature" relies on this surface, we can wish that the curve upon which the "feature" holds itself doesn't deform and doesn't undergo rotation.
+The creation syntax is :
+```
+Create(SOfXY: SequenceOfXY) returns GlobalTranslationConstraint;
+-- SofXY is a set of UV parameters for which the Plate function will give the same value
+-- The Sequence length have to be at least 2.
+```
+A GlobalTranslationConstraint simply creates a LinearXYZConstraint composed of m PinPointConstraint imposing a zero<sup>6</sup> value for the (u<sub>i</sub>,v<sub>i</sub>)  parameters on one side and a matrix *Coef* of (m-1) * m reals on the other side.
+
+<p align="center">
+  <img src="./extracted_imgs/p19-matrix.PNG" />
+</p>
+
+This matrix has m columns and m-1 rows.
+The i<sup>th</sup> row contains:
+- a 1 on the first column
+- a -1 on the (i+1)<sup>th</sup> column
+- 0 everywhere else
+
+This express that the displacement of the first point is equal to the displacement of the (i+1)<sup>th</sup> one.
+
+<sup>6</sup> *A non zero value, but similar in each point would be the same. To see this, consider the equation that express a LinearXYZConstraint (chapter II.A.2) in the case where the sum of &gamma;<sub>q</sub> is zero (in the matrix upper above, for each row, the sum of the terms is 1-1=0), if every C<sub>q</sub> are equals, they are compensating themselves.*
+
+
+## FreeGtoCConstraint Constraint
+
+The FreeGtoCConstraint Constraint is specific to the use of Plate for the building of a surface that is the sum of an initial surface S<sub>0</sub> and the Plate function.
+
+<p align="center"> S(u,v) = S<sub>0</sub>(u,v) +  Plate(u,v)</p>
+
+Like GtoCConstraint (explained in details in ALR96346.DOC) FreeGtoCConstraint allows to express constraints on the Plate function that enforce a contact of order k, k=1,2 or 3 between S in a given point of (u,v) parameter and a point of a reference surface given by derivatives values of order 1 to k in this point.
+
+While GtoCConstraint computes an imposed value for the derivatives until order k, FreeGtoCConstraint only imposes the derivatives until order k-1 (none for k=1) and, by creating several LinearScalarConstraint, imposes the orthogonal component of the plane tangent to the derivatives of order k.
+Indeed, the tangential component of the order k derivative doesn't affects the contact of order k, which allows to let this component free for the minimization of the criterion.
+
+The tests that have been performed in the context of the Powerfill function of STYLER have shown that the surfaces created with FreeGtoCConstraint constraints were most of the time of better "subjective" quality that the ones obtained, all other things being equal, with GtoCConstraint constraints.
+
+In the context of an iterative use of Plate handled by the class NLPlate the FreeGtoCConstraint can be used profitably in the following way:
+1. during the first iteration, we impose a FreeGtoCConstraint at order 1
+1. during the second iteration, we impose a FreeGtoCConstraint at order 2
+1. during the third iteration, we impose a FreeGtoCConstraint at order 3 (if a order 3 contact is required)
+
+Thus during the first iteration, the first derivatives (imposed in the tangent plane) are computed by minimizing the energy.
+During the second iteration :
+- the first derivates aren't called into question,
+- the orthogonal component of the second derivative is computed to satisfy the contact of order k,
+- the tangential component of the second derivative is computed by the minimizing of the criterion.
+It goes the same way for the third iteration if a order 3 contact is required.
+
+During the tests in the context of Powerfill, an incremental loading technique has been studied. It is today too early to recommand to use this technique, the tests not being conclusive yet.
+
+Nevertheless, the syntaxes of FreeGtoCConstraint creations supports this technique, i.e it is possible to indicate a changing ratio.
+
+For example, a ratio of 0.5 for a G2 constraint, means that:
+- the tangent plane imposed is half-way (in angle) of the tangent plane defined by the constraint and,
+- the imposed curvature is the image by a rotation, compatible with the imposed tangent plane, of a quadric *(surface)* localized half-way (in curvature) between the initial curvature and the target curvature.
+
+During an incremental loading, in opposition to the "standard" case, it is necessary to be able to differenciate 2 G1 constraints corresponding to orientations opposed to the normal. Indeed, the "loading path" won't be the same.
+
+<p align="center">
+  <img src="./extracted_imgs/p20-f1.PNG" />
+</p>
+
+That's why, if there is a incremental loading (i.e that the parameter *IncrementalLoad* isn't exactly equal to 1.0) we must give an orientation :
+- 1 : Keep orientation defined by D1T
+- -1 : Keep orientation defined by D1T
+- 0 : Leave the orientation free (we choose the smallest path).
+
+To understand below building syntaxes, we recall that D1, D2 and D3 classes of Plate package defines respectively a couple, a triplet and a quadruplet of 3D vectors defining respectively the first, second and third derivatives of a 3D function of 2 variables.
+
+```
+Create(point2d: XY; D1S, D1T:D1 from Plate; IncrementalLoad: Real=1.0; orientation : Integer = 0) 
+returns FreeGtoCConstraint;
+-- G1 constraint:
+-- D1S : first derivative of S, the surface we want to correct
+-- D1T : first derivative of the reference surface
+```
+```
+Create(point2d: XY from gp; D1S, D1T:D1 from Plate;
+  D2S, D2T: D2 from Plate; IncrementalLoad: Real=1.0; orientation : Integer =0) 
+returns FreeGtoCConstraint;
+-- G1 constraint:
+-- D1S : first derivative of S, the surface we want to correct
+-- D1T : first derivative of the reference surface
+-- D2S : second derivative of S, the surface we want to correct
+-- D2T : second derivative of the reference surface
+```
+```
+Create(point2d: XY from gp; D1S, D1T:D1 from Plate; 
+  D2S, D2T: D2 from Plate;
+  D3S, D3T: D3 from Plate;
+  IncrementalLoad: Real=1.0; orientation : Integer = 0)
+returns FreeGtoCConstraint;
+-- G1 constraint:
+-- D1S : first derivative of S, the surface we want to correct
+-- D1T : first derivative of the reference surface
+-- D2S : second derivative of S, the surface we want to correct
+-- D2T : second derivative of the reference surface
+-- D3S : third derivative of S, the surface we want to correct
+-- D3T : third derivative of the reference surface
+```
+
+## NLPlate
+
+The NLPlate class for "Non Linear Plate" offers a set of services allowing a rapid setup of the iteratives strategies or heuristics based on Plate to realize filling, smoothing, point interpolation, and eventually taking in account other constraints (constraint on the highlights for example).
+
+Main fields of NLPlate are :
+- A list of knowns constraints by a list of pointers on the abstract class GPPConstraint
+- A "Surface from Geom", (abstract class that is inherited by all CAS.CADE surface)
+- A StackOfPlate
+
+The surface correspond to the initialisation surface.
+The Plate stack stores every Plate already solved during previous iterations.
+The positionning (Evualuate and EvaluateDerivatives methods) consist in summing the positionning of the initialisation surface and all the positionnings on the Plate of the stack (unless eventually the last one if it is in loading and isn't yet solved)
+
+An iteration consist of :
+- Stacking a Plate
+- Loading it with constraints functions of constraints of NLPlate (the GPPConstraints) and the current function (sum of initialization surface and all the stacked Plates)
+- Solving the upper Plate
+- In case of failure, we unstack the Plate to bring it back to it's previous state.
+
+We can also "let the (u,v) slide", i.e between two iterations, recomputing (by initialized projection) the (u,v) parameters associated to the constraints that allows it.
+
+As an indication, the various iteratives strategies tried to this day takes less than 20 lines of code using the context and services of NLPlate.
+
+Here is an sample of the CDL of the NLPlate class :
+```cpp
+Create(InitialSurface: Surface from Geom) returns NLPlate;
+
+Load(me: in out; GConst: GPPConstraint);
+
+Solve(me: in out; ord: Integer = 2; InitialConstraintOrder : Integer = 1);
+
+Solve2(me: in out; ord: Integer = 2; InitialConstraintOrder : Integer = 1);
+
+IncrementalSolve(me: in out; 
+  ord: Integer = 2; 
+  InitialConstraintOrder : Integer = 1);
+  NbIncrements : Integer = 4);
+  UVSliding : Boolean = Standard_False);
+
+Evalute(me; point2d : XY from gp) returns XYZ from gp
+;
+EvaluteDerivative(me; point2d : XY from gp; iu,iv : Integer) returns XYZ from gp;
+
+Continuity(me) returns Integer;
+
+Iterate(me: in out;
+  ConstraintOrder, ResolutionOrder : Integer;
+  IncrementalLoading : Real = 1.0) returns Boolean is private;
+
+ConstraintsSliding(me:in out; NbIterations : Integer = 3)
+```
+We will find in appendix a sample of the CDL of the GeomPlate_GPPConstraint class
+
+# Future development 
+## Other linear constraints
+
+Developments described in this document probably doesn't go through all the possiblities of linear constraints.
+We have already said that, depending on the results of industrial tests of "SampledCurveConstraint" we could extend the principle to the "geometric" constraints GtoCConstraint and FreeGtoCConstraint.
+
+On an other hand applying a constant or variable pressure field on a finite area zone, could lead to a constraint comparable to SampledCurveConstraint but whose support woudn't be a curve but the interior of a zone, polygonal for example.
+
+Finally we could propose a variant of GtoCConstraint in C1 (FreeGtoCConstraint in C2 or more) allowing to "set" the derivative modulus in a set direction (which in reality would need to be "transversal" to the sampled linear constraint).
+
+## BuildPlateSurface arrangement
+
+Today the BuildPlateSurface calls the Plate class directly.
+At the cost of minor modifications, it will be required in the future to call the class NLPlate that also allow to behave like Plate (with only one iteration). This will allow to test efficiently different strategies of loading and computing of initial surfaces.
+
+## PlateFE
+
+The class PlateFE will soon be delivered in the GeomPlate package. It will be necessary to decide if it directly takes in account loading strategies or if we need to add to it the class "NLPlateFE" that is comparable to PlateFE. This choice will be made during next developments and tests on this class. (Made by TOYOTA team).
+
+# Towards IDLable component
+
+The choice, for the public API, of an abstract constraint class should not make very expensive to move towards an "component" API for GeomPlate, i.e only defined from a few basic types and Interfaces in the sense of COM or COBRA.
+
+# Appendix
+
+<p align="center">
+  <img src="./extracted_imgs/appendix-1.PNG" />
+</p>
+<p align="center">
+  <img src="./extracted_imgs/appendix-2.PNG" />
+</p>
+<p align="center">
+  <img src="./extracted_imgs/appendix-3.PNG" />
+</p>
